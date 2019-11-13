@@ -1,3 +1,5 @@
 input_topic: "pointcloud2_cluster_tracking/clusters"
+stationary_topic: "pointcloud2_clustering/stationary_clusters"
 out_topic: "pointcloud2_segments_viz/pc2_viz"
 base_link_frame: "base_link"
+display_stationary_clusters: true

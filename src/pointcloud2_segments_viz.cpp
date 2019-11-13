@@ -12,6 +12,7 @@
 
 ros::Publisher pub;
 std::string base_link_frame;
+bool display_stationary_clusters;
 
 std::vector<uint> red = {0, 0, 255, 255, 255, 102, 102, 204, 0, 255};
 std::vector<uint> green = {0, 255, 0, 255, 255, 102, 102, 0, 255, 152};
@@ -61,6 +62,35 @@ void pc2s_callback (const pointcloud_msgs::PointCloud2_Segments& msg){
         pcl::concatenatePointCloud( cluster_msgs, tmp, accumulator);
     }
 
+
+    if(display_stationary_clusters==true){
+        for (size_t i=0; i < msg.stationary_clusters.size(); i++){
+
+            pcl::PCLPointCloud2 cloud2;
+            pcl_conversions::toPCL( msg.stationary_clusters[i] , cloud2);
+
+            pcl::PointCloud<pcl::PointXYZRGB> cloud;
+            pcl::fromPCLPointCloud2(cloud2, cloud);
+
+            for(size_t j=0; j < cloud.points.size(); j++){
+                cloud.points[j].r = 0;
+                cloud.points[j].g = 0; 
+                cloud.points[j].b = 0;
+            }
+
+
+            pcl::PCLPointCloud2 clouds;
+            pcl::toPCLPointCloud2(cloud, clouds);
+            pcl_conversions::fromPCL(clouds, cluster_msgs);
+            cluster_msgs.header.stamp = ros::Time::now();
+            cluster_msgs.header.frame_id = base_link_frame;
+
+            sensor_msgs::PointCloud2 tmp = sensor_msgs::PointCloud2(accumulator);
+
+            pcl::concatenatePointCloud( cluster_msgs, tmp, accumulator);
+        }
+    }
+
     pub.publish(accumulator);
 }
 
@@ -71,11 +101,16 @@ int main (int argc, char** argv){
 
     std::string input_topic;
     std::string out_topic;
+    std::string stationary_topic;
     n_.param("pointcloud2_segments_viz/input_topic",input_topic, std::string("/new_pcl"));
     n_.param("pointcloud2_segments_viz/base_link_frame", base_link_frame, std::string("base_link"));
     n_.param("pointcloud2_segments_viz/out_topic", out_topic, std::string("pointcloud2_segments_viz/pointcloud2"));
+    n_.param("pointcloud2_segments_viz/stationary_topic", stationary_topic, std::string("pointcloud2_clustering/stationary_clusters"));
+
+    n_.param("pointcloud2_segments_viz/display_stationary_clusters", display_stationary_clusters, true);
 
     ros::Subscriber sub = n_.subscribe (input_topic, 1, pc2s_callback);
+    // if(display_stationary_clusters == true) ros::Subscriber stationary_sub = n_.subscribe (stationary_topic, 1, pc2s_callback);
 
     pub = n_.advertise<sensor_msgs::PointCloud2> (out_topic, 1);
 
