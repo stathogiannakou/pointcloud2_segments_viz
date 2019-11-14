@@ -9,10 +9,15 @@
 #include <sensor_msgs/ChannelFloat32.h>
 #include <sensor_msgs/point_cloud_conversion.h>
 #include <pointcloud_msgs/PointCloud2_Segments.h>
+#include <visualization_msgs/Marker.h>
 
 ros::Publisher pub;
 std::string base_link_frame;
+
+
 bool display_stationary_clusters;
+visualization_msgs::Marker marker_sphere;
+ros::Publisher marker_pub;
 
 std::vector<uint> red = {0, 0, 255, 255, 255, 102, 102, 204, 0, 255};
 std::vector<uint> green = {0, 255, 0, 255, 255, 102, 102, 0, 255, 152};
@@ -64,6 +69,29 @@ void pc2s_callback (const pointcloud_msgs::PointCloud2_Segments& msg){
 
 
     if(display_stationary_clusters==true){
+
+
+        marker_sphere.ns = "shapeOfsphere";
+        marker_sphere.id = 0;
+        marker_sphere.type = 7;
+        marker_sphere.action = visualization_msgs::Marker::ADD;
+        marker_sphere.pose.orientation.w = 1.0;
+        marker_sphere.color.a = 1.0;
+        marker_sphere.color.r = 1.0;
+        marker_sphere.color.g = 179.000/255;
+        marker_sphere.color.b = 179.000/255;
+
+
+        marker_sphere.scale.x = 0.1;
+        marker_sphere.scale.y = 0.1;
+        marker_sphere.scale.z = 0.1;
+
+
+        marker_sphere.header.frame_id = "/base_link";
+        marker_sphere.header.stamp = msg.header.stamp;
+        marker_sphere.lifetime = ros::Duration();
+
+
         for (size_t i=0; i < msg.stationary_clusters.size(); i++){
 
             pcl::PCLPointCloud2 cloud2;
@@ -73,10 +101,19 @@ void pc2s_callback (const pointcloud_msgs::PointCloud2_Segments& msg){
             pcl::fromPCLPointCloud2(cloud2, cloud);
 
             for(size_t j=0; j < cloud.points.size(); j++){
-                cloud.points[j].r = 0;
-                cloud.points[j].g = 0; 
-                cloud.points[j].b = 0;
+                cloud.points[j].r = 255;
+                cloud.points[j].g = 179; 
+                cloud.points[j].b = 179;
             }
+
+
+            geometry_msgs::Point p;
+                               
+            p.x = cloud.points[0].x;
+            p.y = cloud.points[0].y;
+            p.z = cloud.points[0].z;
+            marker_sphere.points.push_back(p);
+
 
 
             pcl::PCLPointCloud2 clouds;
@@ -89,6 +126,9 @@ void pc2s_callback (const pointcloud_msgs::PointCloud2_Segments& msg){
 
             pcl::concatenatePointCloud( cluster_msgs, tmp, accumulator);
         }
+
+        marker_pub.publish(marker_sphere);
+        marker_sphere.points.clear();
     }
 
     pub.publish(accumulator);
@@ -113,6 +153,8 @@ int main (int argc, char** argv){
     // if(display_stationary_clusters == true) ros::Subscriber stationary_sub = n_.subscribe (stationary_topic, 1, pc2s_callback);
 
     pub = n_.advertise<sensor_msgs::PointCloud2> (out_topic, 1);
+
+    if(display_stationary_clusters==true)   marker_pub = n_.advertise<visualization_msgs::Marker> ("visualization_marker_sphere", 1);
 
     ros::spin ();
 }
