@@ -46,8 +46,6 @@ void pc2s_callback (const pointcloud_msgs::PointCloud2_Segments& msg){
                 cloud.points[j].r = red[mod];
                 cloud.points[j].g = green[mod]; 
                 cloud.points[j].b = blue[mod];
-                // cloud.points[j].intensity = floor(cloud.points[j].intensity/10); 
-                // cloud.points[j].intensity = cloud.points[j].intensity*(pow(cloud.points[j].x,2)+pow(cloud.points[j].y,2));
 
             }
         }
@@ -56,8 +54,7 @@ void pc2s_callback (const pointcloud_msgs::PointCloud2_Segments& msg){
                 uint mod = j % 10;
                 cloud.points[j].r = red[mod];
                 cloud.points[j].g = green[mod]; 
-                cloud.points[j].b = blue[mod];
-                // cloud.points[j].intensity = floor(cloud.points[j].intensity/10);      
+                cloud.points[j].b = blue[mod];      
             }
         }
 
