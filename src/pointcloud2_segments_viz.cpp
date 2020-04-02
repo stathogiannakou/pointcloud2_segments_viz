@@ -12,7 +12,6 @@
 #include <visualization_msgs/Marker.h>
 
 ros::Publisher pub;
-std::string base_link_frame;
 
 
 bool display_stationary_clusters;
@@ -36,6 +35,8 @@ void pc2s_callback (const pointcloud_msgs::PointCloud2_Segments& msg){
         pcl_conversions::toPCL( msg.clusters[i] , cloud2);
 
         pcl::PointCloud<pcl::PointXYZRGB> cloud;
+        // pcl::PointCloud<pcl::PointXYZI> cloud;
+
         pcl::fromPCLPointCloud2(cloud2, cloud);
 
         if (msg.cluster_id.size() > 0){
@@ -45,6 +46,9 @@ void pc2s_callback (const pointcloud_msgs::PointCloud2_Segments& msg){
                 cloud.points[j].r = red[mod];
                 cloud.points[j].g = green[mod]; 
                 cloud.points[j].b = blue[mod];
+                // cloud.points[j].intensity = floor(cloud.points[j].intensity/10); 
+                // cloud.points[j].intensity = cloud.points[j].intensity*(pow(cloud.points[j].x,2)+pow(cloud.points[j].y,2));
+
             }
         }
         else {
@@ -52,7 +56,8 @@ void pc2s_callback (const pointcloud_msgs::PointCloud2_Segments& msg){
                 uint mod = j % 10;
                 cloud.points[j].r = red[mod];
                 cloud.points[j].g = green[mod]; 
-                cloud.points[j].b = blue[mod];      
+                cloud.points[j].b = blue[mod];
+                // cloud.points[j].intensity = floor(cloud.points[j].intensity/10);      
             }
         }
 
@@ -60,7 +65,7 @@ void pc2s_callback (const pointcloud_msgs::PointCloud2_Segments& msg){
         pcl::toPCLPointCloud2(cloud, clouds);
         pcl_conversions::fromPCL(clouds, cluster_msgs);
         cluster_msgs.header.stamp = ros::Time::now();
-        cluster_msgs.header.frame_id = base_link_frame;
+        cluster_msgs.header.frame_id = msg.header.frame_id;
 
         sensor_msgs::PointCloud2 tmp = sensor_msgs::PointCloud2(accumulator);
 
@@ -87,7 +92,7 @@ void pc2s_callback (const pointcloud_msgs::PointCloud2_Segments& msg){
         marker_sphere.scale.z = 0.1;
 
 
-        marker_sphere.header.frame_id = "/base_link";
+        marker_sphere.header.frame_id = msg.header.frame_id;
         marker_sphere.header.stamp = msg.header.stamp;
         marker_sphere.lifetime = ros::Duration();
 
@@ -120,11 +125,11 @@ void pc2s_callback (const pointcloud_msgs::PointCloud2_Segments& msg){
             pcl::toPCLPointCloud2(cloud, clouds);
             pcl_conversions::fromPCL(clouds, cluster_msgs);
             cluster_msgs.header.stamp = ros::Time::now();
-            cluster_msgs.header.frame_id = base_link_frame;
+            cluster_msgs.header.frame_id = msg.header.frame_id;
 
             sensor_msgs::PointCloud2 tmp = sensor_msgs::PointCloud2(accumulator);
 
-            pcl::concatenatePointCloud( cluster_msgs, tmp, accumulator);
+            pcl::concatenatePointCloud(cluster_msgs, tmp, accumulator);
         }
 
         marker_pub.publish(marker_sphere);
@@ -143,18 +148,17 @@ int main (int argc, char** argv){
     std::string out_topic;
     std::string stationary_topic;
     n_.param("pointcloud2_segments_viz/input_topic",input_topic, std::string("/new_pcl"));
-    n_.param("pointcloud2_segments_viz/base_link_frame", base_link_frame, std::string("base_link"));
     n_.param("pointcloud2_segments_viz/out_topic", out_topic, std::string("pointcloud2_segments_viz/pointcloud2"));
     n_.param("pointcloud2_segments_viz/stationary_topic", stationary_topic, std::string("pointcloud2_clustering/stationary_clusters"));
 
-    n_.param("pointcloud2_segments_viz/display_stationary_clusters", display_stationary_clusters, true);
+    n_.param("pointcloud2_segments_viz/display_stationary_clusters", display_stationary_clusters, false);
 
     ros::Subscriber sub = n_.subscribe (input_topic, 1, pc2s_callback);
     // if(display_stationary_clusters == true) ros::Subscriber stationary_sub = n_.subscribe (stationary_topic, 1, pc2s_callback);
 
     pub = n_.advertise<sensor_msgs::PointCloud2> (out_topic, 1);
 
-    if(display_stationary_clusters==true)   marker_pub = n_.advertise<visualization_msgs::Marker> ("visualization_marker_sphere", 1);
+    if(display_stationary_clusters==true) marker_pub = n_.advertise<visualization_msgs::Marker> ("visualization_marker_sphere", 1);
 
     ros::spin ();
 }
